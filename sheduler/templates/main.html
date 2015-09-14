@@ -1,0 +1,189 @@
+<html>
+  <head>
+    <title></title>
+    <meta content="">
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0">
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet" media="screen">
+
+    <style></style>
+
+{% load staticfiles %}
+
+    <link href='{% static "fullcalendar-2.4.0/fullcalendar.css" %}' rel='stylesheet' />
+    <link href='{% static "fullcalendar-2.4.0/fullcalendar.print.css" %}' rel='stylesheet' media='print' />
+    <script src='{% static "fullcalendar-2.4.0/lib/moment.min.js" %}'></script>
+    <script src='{% static "fullcalendar-2.4.0/lib/jquery.min.js" %}'></script>
+    <script src='{% static "fullcalendar-2.4.0/fullcalendar.min.js" %}'></script>
+    <script src='{% static "fullcalendar-2.4.0/ru.js" %}'></script>
+   
+    <style>
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
+            font-size: 14px;
+        }
+
+        #script-warning {
+            display: none;
+            background: #eee;
+            border-bottom: 1px solid #ddd;
+            padding: 0 10px;
+            line-height: 40px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            color: red;
+        }
+
+        #calendar {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 10px;
+            height:500px;
+        }
+
+        label {
+            font-weight:400;
+            font-size:0.9em;
+        }
+    </style>
+
+
+
+  </head>
+  <body>
+
+
+
+    <div class="row" style="margin-bottom:300px;">
+
+        <div class="col-md-2">
+        </div>
+        <div class="col-md-6">
+            <h2> Doctor appointment </h2>
+            <form action="/save_appointment" method=post>
+                {% csrf_token %}
+                <h3> Шаг 1:   Выберите врача </h3>
+                <label for="id_doctor">врач:</label>
+                <select class="form-control" name="doctor" id="id_doctor">
+                        <option selected="selected" value="0">---------</option>
+                    {% for doc in doctors %}
+                        <option value="{{doc.id}}">{{doc.name}}</option>
+                    {% endfor %}
+                </select>
+
+                <h3> Шаг 2:   Выберите время </h3>
+                <label for="id_calendar">выберите незанятое, удобное вам время <b>согласно расписанию врача</b> (режим работы: пн-пт с 9:00 - 18:00)</label>
+                <div id='calendar' style="height:auto;" today="{{today|date:'Y-m-d' }}"></div>
+                <input class="" type="text" name="datetime" maxlength="128" id="id_datetime" style="visibility:hidden;">
+
+                <h3> Шаг 3:   Заполните карточку </h3>
+                <label for="id_name">Имя:</label><input class="form-control" type="text" name="name" maxlength="128" id="id_name">
+                <label for="id_surname">Фамилия:</label><input class="form-control" type="text" name="surname" maxlength="128" id="id_surname">
+                <label for="id_patronymic">Отчество:</label><input class="form-control" type="text" name="patronymic" maxlength="128" id="id_patronymic">
+
+
+                <button type="submit" class="btn btn-success btn-lg pull-right" style="width:300px;"> Записаться </button>
+            </form>
+        </div>
+
+    </div>
+
+
+  </body>
+
+
+   <script>
+
+        $(document).ready(function() {
+
+            var today_string = $('#calendar').attr('today');
+
+            var event;
+            var events = []
+
+            $('#calendar').fullCalendar({
+                lang:'ru',
+                header: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'prev,next'
+                },
+                defaultDate: today_string,
+                defaultView: 'agendaWeek',
+                firstDay:1,
+                hiddenDays: [ 6, 0],
+                allDaySlot: false,
+                slotDuration: '01:00',
+                minTime: '09:00',
+                maxTime: '18:00',
+                height: 'auto',
+                editable: false,
+                selectOverlap: false,
+                loading: function(bool) {
+                    $('#loading').toggle(bool);
+                },
+                selectable: true,
+                selectHelper: true,
+                select: function(start, end) {
+                    // look if there is event - skip
+                    // if not - try to erase previous event event
+                    if (event){
+                        $('#calendar').fullCalendar('removeEvents', event.id )
+                    }
+                    // render new one
+                    event = {
+                        id: start._d,
+                        title: 'my_time',
+                        start: start,
+                        end: end,
+                        color: 'green',
+                    };
+                    $('#calendar').fullCalendar('renderEvent', event, stick = true);
+                    $('#calendar').fullCalendar('unselect');
+                    $('#id_datetime').val(event.start)
+                },
+            });
+
+            function append_events(data){
+                for (i in data){
+                    console.log(data[i])
+                    $('#calendar').fullCalendar('renderEvent', data[i], stick = true);
+                }
+            }
+            function render_new_events(data){
+                $('#calendar').fullCalendar('removeEvents')
+                for (i in data){
+                    console.log(data[i])
+                    $('#calendar').fullCalendar('renderEvent', data[i], stick = true);
+                }
+            }
+            render_new_events(events)
+
+
+            //TODO
+            // onchange - select doctor and
+            // update sheduler
+            $('#id_doctor').change(function() {
+                doctor_id = $( this).find("option:selected").val()
+                if (doctor_id!=0){
+                    $.ajax({
+                        url:'get_doctor_shedule',
+                        data:{doctor_id:doctor_id},
+                        type:'get',
+                        dataType: "json",
+                        success:function(ans){
+                            events = $.parseJSON(ans.events_json)
+                            render_new_events(events)
+                        }
+                    })
+                }
+            })
+        });
+
+    </script>
+</html>
+
