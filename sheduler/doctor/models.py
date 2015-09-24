@@ -1,17 +1,14 @@
-# -*- coding: utf-8 -*-
-
-
-
+# django
 from django.db import models
 
-# Create your models here.
+
 
 class Doctor(models.Model):
     name = models.CharField(
-        max_length = 128,
+        max_length=128,
         verbose_name=u"имя",
         blank=False,
-        default = '',
+        default='',
     )
     available = models.BooleanField(
         default=True,

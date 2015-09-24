@@ -1,51 +1,46 @@
-# -*- coding: utf-8 -*-
-
-#django
+# django
 from django.core.context_processors import csrf
-#from django import http
+# from django import http
 from django.shortcuts import render_to_response, redirect
 from django.template import RequestContext
 from django.db import IntegrityError
 
-#models
+# models
 from doctor.models import Doctor
 from appointment.models import Appointment
 
-#forms
+# forms
 from appointment.forms import AppointmentForm
 
-#project
+# project
 from tools.jsonans import jsonSimpleAns
 
-#python 3.4
+# python 3.4
 from datetime import datetime, timedelta
 import json
 
 
 
-
 def main(request):
-
-    #today
+    """ """
+    # today
     today = datetime.today()
 
-    #current week
+    # current week
     # today.isocalendar()[1]
 
     # monday - friday
-    #week_days = [today + timedelta(days=i) for i in range(0 - today.weekday(), 5 - today.weekday())]
+    # week_days = [today + timedelta(days=i) for i in range(0 - today.weekday(), 5 - today.weekday())]
 
     doctors = Doctor.objects.all()
 
     context = {
-        'today':today,
+        'today': today,
         'doctors': doctors,
-        #'AppointmentForm':AppointmentForm,
-        #'week_days':week_days,
     }
     variables = RequestContext(request, context)
     variables.update(csrf(request))
-    return render_to_response('main.html',variables)
+    return render_to_response('main.html', variables)
 
 
 
@@ -73,35 +68,35 @@ def get_doctor_shedule(request):
 
     doctor_id = request.GET.get('doctor_id')
     if doctor_id:
-        doctor = Doctor.objects.get(id = doctor_id)
+        doctor = Doctor.objects.get(id=doctor_id)
 
-        #today
+        # today
         today = datetime.today()
-        #first monday of this week
+        # first monday of this week
         this_week_moday = today + timedelta(days=0 - today.weekday())
 
-        #TODO date grater than today week monday
-        appointments = Appointment.objects.filter(doctor = doctor, datetime__gt = this_week_moday)
+        # date grater than today week monday
+        appointments = Appointment.objects.filter(doctor=doctor, datetime__gt=this_week_moday)
 
-        dt = timedelta(hours = 1)
+        dt = timedelta(hours=1)
 
         events = []
         for a in appointments:
             end = a.datetime + dt
             event = {
-                'id':a.datetime.strftime("%Y-%m-%dT%H:%M"),
+                'id': a.datetime.strftime("%Y-%m-%dT%H:%M"),
                 'title': 'busy',
                 'start': a.datetime.strftime("%Y-%m-%dT%H:%M"),
-                'end': end.strftime("%Y-%m-%dT%H:%M") ,
+                'end': end.strftime("%Y-%m-%dT%H:%M"),
                 'color': 'yellow',
             }
             events.append(event)
 
         events_json = json.dumps(events)
     else:
-        return jsonSimpleAns(error = 'error')
+        return jsonSimpleAns(error='error')
 
-    return jsonSimpleAns(info = {'events_json': events_json})
+    return jsonSimpleAns(info={'events_json': events_json})
 
 
 
@@ -117,21 +112,20 @@ def save_appointment(request):
 
     if appointment_form.is_valid():
         try:
-            appointment = appointment_form.save(commit = False)
+            appointment = appointment_form.save(commit=False)
             form_dt = request.POST.get('datetime')
-            #Tue Sep 15 2015 11:00:00 GMT+0000
+            # Tue Sep 15 2015 11:00:00 GMT+0000
             dt_obj = datetime.strptime(form_dt, "%a %b %d %Y %H:%M:%S GMT+0000")
             appointment.datetime = dt_obj
             appointment.save()
 
         except IntegrityError:
-            return jsonSimpleAns(error = 'error')
+            return jsonSimpleAns(error='error')
 
     else:
-        return jsonSimpleAns(error = appointment_form.errors)
+        return jsonSimpleAns(error=appointment_form.errors)
 
     return render_to_response('success.html')
-
 
 
 

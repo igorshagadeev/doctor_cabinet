@@ -1,19 +1,15 @@
+# django
 from django.contrib import admin
 
-# Register your models here.
-
-
-
-
-
-
+# project
 from doctor.models import Doctor
+
 
 class DoctorAdmin(admin.ModelAdmin):
     pass
 
 
-admin.site.register( Doctor, DoctorAdmin)
+admin.site.register(Doctor, DoctorAdmin)
 
 
 
