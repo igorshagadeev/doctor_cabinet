@@ -8,7 +8,8 @@ Django 1.8, python 3.4, jquery, fullCalendar
 how it works - look at service_example.png
 
 
-hot-start: simple sqlite db included
+hot-start: simple sqlite db included<br/>
+
     1) clone
     2) cd sheduler
     2) $ python manage.py runserver
